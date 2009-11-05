@@ -13,20 +13,16 @@ public class NortonwaveServlet extends AbstractRobotServlet
 	
 	// Attention string
 	private String m_sHailingCall = "Norton:";
-	private String m_sHelpText = "My commands are:\n\n\ntdebug on - Turn debugging on\n\tdebug off - Turn debugging off\n\thelp - Get help\n\n";
+	private String m_sHelpText = "My commands are:\n\n\n\tdebug on - Turn debugging on\n\tdebug off - Turn debugging off\n\thelp - Get help\n\n";
 	
 	// Output debug strings into the blip
 	private boolean m_bDebug = false;
-	private boolean m_bFormal = true;
 	
 	private void insertBlipResponseHeading(Blip blip)
 	{
-		if(m_bFormal)
-		{
-			StyledText txt = new StyledText("Norton SafeWave Servlet\n\n", StyleType.HEADING4);
-			blip.getDocument().appendStyledText(txt);
-			blip.getDocument().append("\n");
-		}		
+		StyledText txt = new StyledText("Norton SafeWave Servlet\n\n", StyleType.HEADING4);
+		blip.getDocument().appendStyledText(txt);
+		blip.getDocument().append("\n");
 	}
 
 	private void onHailingCall(Wavelet wavelet, Event e, TextView existingBlip)
@@ -130,10 +126,8 @@ public class NortonwaveServlet extends AbstractRobotServlet
 					// each added link image requires that we need to offset the start point by 1
                     doc.insertElement(a.getRange().getEnd() + offset, img);
                     offset++;
-					//doc.deleteAnnotations(a.getRange());
-					//doc.setAnnotation(a.getRange(), a.getName(), "http://passthrough.com?" + a.getValue());
 				}
-				else
+				else // this would indicate a link to a wave, not an external site:
 				{
 					if(m_bDebug)
 						blip.getDocument().append("Skipping link: " + a.toString() + "\n");
@@ -153,12 +147,10 @@ public class NortonwaveServlet extends AbstractRobotServlet
 
 		StyledText txt = new StyledText("Norton SafeWave Servlet\n\n", StyleType.HEADING4);
 		blip.getDocument().appendStyledText(txt);
-		blip.getDocument().append("\n");
-		blip.getDocument().append("Type in a link, and I'll tell you if its safe or not\n");
+		blip.getDocument().append("\nType in a link, and I'll tell you if its safe or not\n");
 		Element img = new Image();
 		img.setProperty("url", "http://nortonwave.appspot.com/iconheader.png");		
-		blip.getDocument().appendElement(img);
-	
+		blip.getDocument().appendElement(img);	
 	}
 	
 	//
@@ -166,9 +158,6 @@ public class NortonwaveServlet extends AbstractRobotServlet
 	//
 	private void onWaveletParticipantsChanged(Wavelet wavelet, Event e)
 	{
-		//Blip blip = wavelet.appendBlip();
-		//blip.getDocument().delete();
-		//blip.getDocument().append("Welcome!");
 		return;
 	}
 	
@@ -197,28 +186,4 @@ public class NortonwaveServlet extends AbstractRobotServlet
 			}
 		}
 	}
-	
-
-	/*
-	private String getCreatorName(Event blipSubmittedEvent) 
-	{
-		String creator = getCreator(blipSubmittedEvent);
-		int indexAt = creator.indexOf("@");
-		if(indexAt>-1){
-			creator = creator.substring(0, indexAt);
-		}
-		int indexDot = creator.indexOf(".");
-		if(indexDot>-1 && indexDot>1){
-			creator = creator.substring(0, indexDot);
-		}
-		String firstLetter = creator.substring(0, 1).toUpperCase();
-		creator = firstLetter + creator.substring(1);
-		return creator;
-	}
-	
-	private String getCreator(Event blipSubmittedEvent) 
-	{
-		return blipSubmittedEvent.getBlip().getCreator();
-	}
-	*/
 }
