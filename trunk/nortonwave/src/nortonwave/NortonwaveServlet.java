@@ -3,19 +3,38 @@ package nortonwave;
 import java.util.List;
 import java.util.logging.Logger;
 
-import com.google.wave.api.*;
+import shasta.rating.WRSClient;
 
-import shasta.rating.*;
+import com.google.wave.api.AbstractRobotServlet;
+import com.google.wave.api.Annotation;
+import com.google.wave.api.Blip;
+import com.google.wave.api.Element;
+import com.google.wave.api.Event;
+import com.google.wave.api.Image;
+import com.google.wave.api.RobotMessageBundle;
+import com.google.wave.api.StyleType;
+import com.google.wave.api.StyledText;
+import com.google.wave.api.TextView;
+import com.google.wave.api.Wavelet;
 
 @SuppressWarnings("serial")
 public class NortonwaveServlet extends AbstractRobotServlet 
 {	
 	private static final Logger log = Logger.getLogger("NortonwaveServlet");
+
+	private static final String SAFEWAVE_APP_ADDRESS = "nortonwave@appspot.com"; 
 	
 	// Attention string
-	private String m_sHailingCall = "Norton:";
-	private String m_sHelpText = "My commands are:\n\n\n\tdebug on - Turn debugging on\n\tdebug off - Turn debugging off\n\thelp - Get help\n\n";
+	private static final String HAILING_CALL = "Norton:";
+	private static final String HELP_TEXT = "My commands are:\n\n\n\tdebug on - Turn debugging on\n\tdebug off - Turn debugging off\n\thelp - Get help\n\n";
 	
+	// Image names
+	private static final String SAFEWAVE_IMAGE_BASE = "http://nortonwave.appspot.com/"; 
+	private static final String IMAGE_GOOD = "green-checkmark.png";
+	private static final String IMAGE_WARNING = "yellow-checkmark.png";
+	private static final String IMAGE_BAD = "red-checkmark.png";
+	private static final String IMAGE_UNKNOWN = "grey-checkmark.png";
+
 	// Output debug strings into the blip
 	private boolean m_bDebug = false;
 	
@@ -35,7 +54,7 @@ public class NortonwaveServlet extends AbstractRobotServlet
 			
 		if(existingBlip.getText().contains("help"))
 		{
-			blip.getDocument().append(m_sHelpText);
+			blip.getDocument().append(HELP_TEXT);
 		}
 		else if(existingBlip.getText().contains("debug on"))
 		{
@@ -50,7 +69,7 @@ public class NortonwaveServlet extends AbstractRobotServlet
 		else
 		{
 			blip.getDocument().append("I didn't understand what you want...\n\n");
-			blip.getDocument().append(m_sHelpText);
+			blip.getDocument().append(HELP_TEXT);
 		}
 		return;
 
@@ -62,7 +81,7 @@ public class NortonwaveServlet extends AbstractRobotServlet
 	private void onBlipSubmitted(Wavelet wavelet, Event e)
 	{
 		// don't process our own modifications (prevents infinite loop)
-		if (e.getModifiedBy().equals(this.getRobotAddress()))
+		if (e.getModifiedBy().equals(SAFEWAVE_APP_ADDRESS))
 		{
 			log.info("skipping update from self");
 			return;
@@ -72,8 +91,8 @@ public class NortonwaveServlet extends AbstractRobotServlet
 		
 		Blip existingBlip = e.getBlip();
 		TextView doc = existingBlip.getDocument();
-
-		if(doc.getText().contains(m_sHailingCall))
+		
+		if(doc.getText().contains(HAILING_CALL))
 		{
 			log.info("processing hailing call");
 			onHailingCall(wavelet, e, doc);
@@ -93,6 +112,7 @@ public class NortonwaveServlet extends AbstractRobotServlet
 		}
 		int textOffset = 0;
 		
+		// rate links
 		for(Annotation a : annotationList)
 		{
 			if(a.getName().contains("link"))
@@ -105,33 +125,33 @@ public class NortonwaveServlet extends AbstractRobotServlet
 					log.info(ratingMsg);
 					if(m_bDebug)
 						blip.getDocument().append(ratingMsg + "\n");
-										
+
 					Element img = new Image();
 					/*
 					 * The method returns one character
-     					‘ g’ – for good or green site
-    				    ‘w’ – for warning or yellow site
-      					‘b’ – for bad or red site
-      					‘u’ -  for unknown site
+						g - for good or green site
+ 						w - for warning or yellow site
+ 						b - for bad or red site
+						u - for unknown site
 					 */
 					switch(response)
 					{
 						case 'g':
-							img.setProperty("url", "http://nortonwave.appspot.com/green-checkmark.png");
+							img.setProperty("url", SAFEWAVE_IMAGE_BASE + IMAGE_GOOD);						
 							break;
 						case 'w':
-							img.setProperty("url", "http://nortonwave.appspot.com/yellow-checkmark.png");
+							img.setProperty("url", SAFEWAVE_IMAGE_BASE + IMAGE_WARNING);
 							break;
 						case 'b':
-							img.setProperty("url", "http://nortonwave.appspot.com/red-checkmark.png");
+							img.setProperty("url", SAFEWAVE_IMAGE_BASE + IMAGE_BAD);
 							break;
 						case 'u':
 						default:
-							img.setProperty("url", "http://nortonwave.appspot.com/grey-checkmark.png");
+							img.setProperty("url", SAFEWAVE_IMAGE_BASE + IMAGE_UNKNOWN);
 							break;
 					}
-						
-					// each added link image requires that we need to offset the start point by 1
+					
+					// each added link image (and text) requires that we need to offset the start point by 2
                     doc.insertElement(a.getRange().getEnd() + textOffset, img);
                     textOffset++;
 				}
