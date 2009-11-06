@@ -1,6 +1,8 @@
 package nortonwave;
 
 import java.util.List;
+import java.util.logging.Logger;
+
 import com.google.wave.api.*;
 
 import shasta.rating.*;
@@ -8,8 +10,7 @@ import shasta.rating.*;
 @SuppressWarnings("serial")
 public class NortonwaveServlet extends AbstractRobotServlet 
 {	
-	// The name of this wavelet, used to make sure we don't process our own blips
-	private String m_sOwnName = "nortonwave@appspot.com";
+	private static final Logger log = Logger.getLogger("NortonwaveServlet");
 	
 	// Attention string
 	private String m_sHailingCall = "Norton:";
@@ -28,7 +29,6 @@ public class NortonwaveServlet extends AbstractRobotServlet
 	private void onHailingCall(Wavelet wavelet, Event e, TextView existingBlip)
 	{
 		Blip blip = wavelet.appendBlip();
-		TextView doc = blip.getDocument();
 		blip.getDocument().delete();
 		
 		insertBlipResponseHeading(blip);
@@ -62,14 +62,20 @@ public class NortonwaveServlet extends AbstractRobotServlet
 	private void onBlipSubmitted(Wavelet wavelet, Event e)
 	{
 		// don't process our own modifications (prevents infinite loop)
-		if(e.getModifiedBy().equals(m_sOwnName))
+		if (e.getModifiedBy().equals(this.getRobotAddress()))
+		{
+			log.info("skipping update from self");
 			return;
+		}
+		
+		log.info("processing update from " + e.getModifiedBy());
 		
 		Blip existingBlip = e.getBlip();
 		TextView doc = existingBlip.getDocument();
 
 		if(doc.getText().contains(m_sHailingCall))
 		{
+			log.info("processing hailing call");
 			onHailingCall(wavelet, e, doc);
 			return;
 		}
@@ -85,7 +91,7 @@ public class NortonwaveServlet extends AbstractRobotServlet
 			insertBlipResponseHeading(blip);
 			blip.getDocument().append("Processing blip...");
 		}
-		int offset = 0;
+		int textOffset = 0;
 		
 		for(Annotation a : annotationList)
 		{
@@ -95,8 +101,10 @@ public class NortonwaveServlet extends AbstractRobotServlet
 				{
 					char response = WRSClient.getRatingForSite(a.getValue());
 					
+					String ratingMsg = "Site report for: " + a.toString() + "-- Site rating:" + response;
+					log.info(ratingMsg);
 					if(m_bDebug)
-						blip.getDocument().append("Site report for: " + a.toString() + "-- Site rating:" + response + "\n");
+						blip.getDocument().append(ratingMsg + "\n");
 										
 					Element img = new Image();
 					/*
@@ -124,8 +132,8 @@ public class NortonwaveServlet extends AbstractRobotServlet
 					}
 						
 					// each added link image requires that we need to offset the start point by 1
-                    doc.insertElement(a.getRange().getEnd() + offset, img);
-                    offset++;
+                    doc.insertElement(a.getRange().getEnd() + textOffset, img);
+                    textOffset++;
 				}
 				else // this would indicate a link to a wave, not an external site:
 				{
