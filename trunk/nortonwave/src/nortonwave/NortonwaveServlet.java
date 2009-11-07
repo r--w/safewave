@@ -123,9 +123,9 @@ public class NortonwaveServlet extends AbstractRobotServlet
 				if(a.getName().contains("manual") || a.getName().contains("auto"))
 				{
 					// Check if we've already marked it up	
-                    Element next = doc.getElement(a.getRange().getEnd() + offset);
+                    Element next = doc.getElement(a.getRange().getEnd() + textOffset);
                     if(m_bDebug)
-						blip.getDocument().append("Image location: " + a.getRange().getEnd() + offset + "\n");
+						blip.getDocument().append("Image location: " + a.getRange().getEnd() + textOffset + "\n");
                     	
                     if(next != null)
                     {
@@ -195,12 +195,14 @@ public class NortonwaveServlet extends AbstractRobotServlet
 		Blip blip = wavelet.appendBlip();
 		blip.getDocument().delete();
 
-		StyledText txt = new StyledText("Norton SafeWave\n\n", StyleType.HEADING4);
-		blip.getDocument().appendStyledText(txt);
-		blip.getDocument().append("\nType in a link, and I'll tell you if its safe or not\n");
+		//StyledText txt = new StyledText("Norton SafeWave", StyleType.HEADING4);
+		//blip.getDocument().appendStyledText(txt);
+		
+		blip.getDocument().append("\nType in a link, and I'll tell you if its safe.\n");
+
 		Element img = new Image();
 		img.setProperty("url", "http://nortonwave.appspot.com/iconheader.png");		
-		blip.getDocument().appendElement(img);	
+		blip.getDocument().appendElement(img);
 	}
 	
 	//
