@@ -91,7 +91,8 @@ public class NortonwaveServlet extends AbstractRobotServlet
 		
 		Blip existingBlip = e.getBlip();
 		TextView doc = existingBlip.getDocument();
-		
+
+		// Defect: If the hailing call existing anywhere in the text of a blip, we'll activate... probably want to make sure its the *only* thing there		
 		if(doc.getText().contains(HAILING_CALL))
 		{
 			log.info("processing hailing call");
@@ -108,8 +109,10 @@ public class NortonwaveServlet extends AbstractRobotServlet
 			blip = wavelet.appendBlip();
 			blip.getDocument().delete();
 			insertBlipResponseHeading(blip);
-			blip.getDocument().append("Processing blip...");
+			blip.getDocument().append("Processing blip...\n\n");
 		}
+		
+		// tracks the insertion of each element
 		int textOffset = 0;
 		
 		// rate links
@@ -119,6 +122,25 @@ public class NortonwaveServlet extends AbstractRobotServlet
 			{
 				if(a.getName().contains("manual") || a.getName().contains("auto"))
 				{
+					// Check if we've already marked it up	
+                    Element next = doc.getElement(a.getRange().getEnd() + offset);
+                    if(m_bDebug)
+						blip.getDocument().append("Image location: " + a.getRange().getEnd() + offset + "\n");
+                    	
+                    if(next != null)
+                    {
+                        // Hack Alert - I'm hacking to assume that if a link is followed by an image, then we must have inserted it
+                    	// will introduce a new bug which is that we'll skip links if they are followed by images....
+                        if(next.isImage())
+                        {
+                            if(m_bDebug)
+        						blip.getDocument().append("Skipping previously marked up link: " + a.getValue() + "\n");
+                            
+                        	continue;
+                        }
+                    }
+                    
+					// If we haven't marked it up -- check the rating and mark up now
 					char response = WRSClient.getRatingForSite(a.getValue());
 					
 					String ratingMsg = "Site report for: " + a.toString() + "-- Site rating:" + response;
@@ -173,7 +195,7 @@ public class NortonwaveServlet extends AbstractRobotServlet
 		Blip blip = wavelet.appendBlip();
 		blip.getDocument().delete();
 
-		StyledText txt = new StyledText("Norton SafeWave Servlet\n\n", StyleType.HEADING4);
+		StyledText txt = new StyledText("Norton SafeWave\n\n", StyleType.HEADING4);
 		blip.getDocument().appendStyledText(txt);
 		blip.getDocument().append("\nType in a link, and I'll tell you if its safe or not\n");
 		Element img = new Image();
