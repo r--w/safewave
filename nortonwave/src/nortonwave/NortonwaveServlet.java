@@ -92,8 +92,8 @@ public class NortonwaveServlet extends AbstractRobotServlet
 		Blip existingBlip = e.getBlip();
 		TextView doc = existingBlip.getDocument();
 
-		// Defect: If the hailing call existing anywhere in the text of a blip, we'll activate... probably want to make sure its the *only* thing there		
-		if(doc.getText().contains(HAILING_CALL))
+		// only react to a hailing call if the blip starts w/ the hailing call prompt.
+		if(doc.getText().startsWith(HAILING_CALL))
 		{
 			log.info("processing hailing call");
 			onHailingCall(wavelet, e, doc);
@@ -122,23 +122,6 @@ public class NortonwaveServlet extends AbstractRobotServlet
 			{
 				if(a.getName().contains("manual") || a.getName().contains("auto"))
 				{
-					// Check if we've already marked it up	
-                    Element next = doc.getElement(a.getRange().getEnd() + textOffset);
-                    if(m_bDebug)
-						blip.getDocument().append("Image location: " + a.getRange().getEnd() + textOffset + "\n");
-                    	
-                    if(next != null)
-                    {
-                        // Hack Alert - I'm hacking to assume that if a link is followed by an image, then we must have inserted it
-                    	// will introduce a new bug which is that we'll skip links if they are followed by images....
-                        if(next.isImage())
-                        {
-                            if(m_bDebug)
-        						blip.getDocument().append("Skipping previously marked up link: " + a.getValue() + "\n");
-                            
-                        	continue;
-                        }
-                    }
                     
 					// If we haven't marked it up -- check the rating and mark up now
 					char response = WRSClient.getRatingForSite(a.getValue());
@@ -148,7 +131,7 @@ public class NortonwaveServlet extends AbstractRobotServlet
 					if(m_bDebug)
 						blip.getDocument().append(ratingMsg + "\n");
 
-					Element img = new Image();
+					Image img = new Image();
 					/*
 					 * The method returns one character
 						g - for good or green site
@@ -173,9 +156,47 @@ public class NortonwaveServlet extends AbstractRobotServlet
 							break;
 					}
 					
-					// each added link image (and text) requires that we need to offset the start point by 2
-                    doc.insertElement(a.getRange().getEnd() + textOffset, img);
-                    textOffset++;
+					// Check if we've already marked it up	
+                    Element next = doc.getElement(a.getRange().getEnd() + textOffset);
+                    if(m_bDebug)
+						blip.getDocument().append("Image location: " + a.getRange().getEnd() + textOffset + "\n");
+                    	
+                    // Hack Alert - I'm hacking to assume that if a link is followed by an image and the caption is the same
+                	// as the link text then we must have inserted it
+                	// will introduce a new bug which is that we'll skip links if they are followed by images and the
+                	// caption is set correctly...
+                    boolean bInsertNewImage = true;
+                    for (;;)
+                    {
+                    	if (next == null)
+                    		break;
+                    	
+                    	if (!next.isImage())
+                    		break;
+                    	
+                    	Image existingImage = (Image) next;
+                    	String existingCaption = existingImage.getCaption();
+                    	
+                    	if (null == existingCaption || !existingCaption.equals(a.getValue()))
+                    		break;
+
+                        if(m_bDebug)
+    						blip.getDocument().append("re-rating previously marked up link: " + a.getValue() + "\n");
+                        
+                        existingImage.setUrl(img.getUrl());
+
+                    	// always break.
+                    	bInsertNewImage = false;
+                    	break;
+                    }
+                    
+                    if (bInsertNewImage)
+                    {
+						// each added link image (and text) requires that we need to offset the start point by 2
+						img.setCaption(a.getValue());
+	                    doc.insertElement(a.getRange().getEnd() + textOffset, img);
+	                    textOffset++;
+                    }
 				}
 				else // this would indicate a link to a wave, not an external site:
 				{
