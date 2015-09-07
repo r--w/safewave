@@ -1,0 +1,1 @@
+This is a Google Wave robot, which uses the Norton SafeWeb API to validate web links in wave conversations.
